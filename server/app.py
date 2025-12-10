@@ -20,10 +20,16 @@ SCOPE = [
 def get_db_connection():
     """
     Establishes a connection to the Google Sheet.
-    Requires credentials.json in the server root.
+    Uses GOOGLE_CREDENTIALS env var if available (production),
+    otherwise falls back to credentials.json (local).
     """
     try:
-        creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", SCOPE)
+        if os.environ.get("GOOGLE_CREDENTIALS"):
+            creds_dict = json.loads(os.environ["GOOGLE_CREDENTIALS"])
+            creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
+        else:
+            creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", SCOPE)
+            
         client = gspread.authorize(creds)
         # Open the spreadsheet
         sheet = client.open("Medical_Referrals")
