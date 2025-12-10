@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+server/venv/
+server/__pycache__/
+*.pyc
+
+# Next.js
+client/.next/
+client/out/
+client/build/
+client/dist/
+
+# Environment & Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+server/credentials.json
+*.pem
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store
+
