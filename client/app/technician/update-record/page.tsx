@@ -3,9 +3,9 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import api from '@/lib/api';
-import { useState, useEffect } from 'react';
+import { useState, Suspense } from 'react';
 
-export default function TechnicianUpdateRecord() {
+function TechnicianUpdateRecordContent() {
   const searchParams = useSearchParams();
   const nationalId = searchParams.get('id');
   const router = useRouter();
@@ -75,6 +75,14 @@ export default function TechnicianUpdateRecord() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function TechnicianUpdateRecord() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+      <TechnicianUpdateRecordContent />
+    </Suspense>
   );
 }
 
