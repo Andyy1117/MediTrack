@@ -129,6 +129,70 @@ def add_doctor():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# --- User Management (Admin Only) ---
+
+@app.route('/api/admin/users', methods=['GET'])
+@jwt_required()
+def get_users():
+    claims = get_jwt()
+    if claims["role"] != "admin":
+        return jsonify({"msg": "Admin only"}), 403
+
+    try:
+        ws = get_worksheet("Users")
+        users = ws.get_all_records()
+        return jsonify(users), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/admin/users', methods=['POST'])
+@jwt_required()
+def create_user():
+    claims = get_jwt()
+    if claims["role"] != "admin":
+        return jsonify({"msg": "Admin only"}), 403
+        
+    data = request.json
+    try:
+        ws = get_worksheet("Users")
+        users = ws.get_all_records()
+        
+        # Check if exists
+        if any(u['Username'] == data['username'] for u in users):
+            return jsonify({"msg": "User already exists"}), 400
+            
+        row = [
+            data.get("username"),
+            data.get("password"),
+            data.get("role")
+        ]
+        ws.append_row(row)
+        return jsonify({"message": "User created"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/admin/users', methods=['DELETE'])
+@jwt_required()
+def delete_user():
+    claims = get_jwt()
+    if claims["role"] != "admin":
+        return jsonify({"msg": "Admin only"}), 403
+        
+    username = request.json.get("username")
+    if username == "admin":
+        return jsonify({"msg": "Cannot delete root admin"}), 400
+
+    try:
+        ws = get_worksheet("Users")
+        cell = ws.find(username)
+        if not cell:
+            return jsonify({"msg": "User not found"}), 404
+            
+        ws.delete_rows(cell.row)
+        return jsonify({"message": "User deleted"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # --- Exam Workflow ---
 
 @app.route('/api/exams/register', methods=['POST'])

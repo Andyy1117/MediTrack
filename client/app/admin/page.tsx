@@ -160,7 +160,7 @@ function UsersManager() {
   
   const fetchUsers = async () => {
     try {
-      const res = await api.get('/admin/get-users');
+      const res = await api.get('/admin/users');
       setUsers(res.data);
     } catch (err) {
       console.error(err);
@@ -171,7 +171,7 @@ function UsersManager() {
 
   const onSubmit = async (data: any) => {
     try {
-      await api.post('/admin/create-user', data);
+      await api.post('/admin/users', data);
       reset();
       fetchUsers();
     } catch (err) { alert('Failed'); }
@@ -180,7 +180,8 @@ function UsersManager() {
   const handleDelete = async (username: string) => {
     if (!confirm('Are you sure?')) return;
     try {
-      await api.post('/admin/delete-user', { username });
+      // Axios delete requires 'data' property for body
+      await api.delete('/admin/users', { data: { username } });
       fetchUsers();
     } catch (err) { alert('Failed'); }
   };
