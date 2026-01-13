@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 
 type FormData = {
   patient_name: string;
@@ -25,22 +26,16 @@ const EXAM_TYPES = [
 ];
 
 export default function ReceptionAddRecord() {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>();
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormData>();
   const router = useRouter();
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const onSubmit = async (data: FormData) => {
-    setSubmitError(null);
     try {
       await api.post('/exams/register', data);
-      router.push('/reception/add-record'); // Stay on page or clear form?
-      // For now, let's reset the form (manual refresh or reset)
-      // Actually router.refresh() might not clear form inputs.
-      // Better to show success message and reset form.
-      alert("Patient Registered Successfully!");
-      window.location.reload(); 
+      toast.success("Patient Registered Successfully!");
+      reset(); // Clear form
     } catch (error: any) {
-      setSubmitError(error.response?.data?.msg || error.response?.data?.error || 'Error registering patient');
+      toast.error(error.response?.data?.msg || "Error registering patient");
     }
   };
 
@@ -93,12 +88,6 @@ export default function ReceptionAddRecord() {
           </select>
           {errors.exam_type && <p className="text-red-500 text-xs mt-1">{errors.exam_type.message}</p>}
         </div>
-
-        {submitError && (
-            <div className="bg-red-50 border-l-4 border-red-400 p-4">
-                <p className="text-sm text-red-700">{submitError}</p>
-            </div>
-        )}
 
         <div className="flex justify-end">
           <button

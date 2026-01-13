@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
@@ -16,8 +17,11 @@ export default function LoginPage() {
       const response = await api.post('/auth/login', data);
       const { access_token, role } = response.data;
       login(access_token, role, data.username);
+      toast.success("Successfully logged in!");
     } catch (err: any) {
-      setError(err.response?.data?.msg || 'Login failed');
+      const msg = err.response?.data?.msg || 'Login failed';
+      setError(msg);
+      toast.error(msg);
     }
   };
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { User, Calendar, Activity, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 type Exam = {
   ID: string;
@@ -43,6 +44,7 @@ export default function TechnicianDashboard() {
         setDoctors(docsRes.data);
       } catch (err) {
         console.error("Error fetching data:", err);
+        toast.error("Failed to load data");
       } finally {
         setLoading(false);
       }
@@ -66,9 +68,10 @@ export default function TechnicianDashboard() {
       setSelectedExam(null);
       setReferringDocId('');
       setReportingRadId('');
+      toast.success("Exam marked as completed!");
     } catch (err) {
       console.error("Error completing exam:", err);
-      alert("Failed to complete exam");
+      toast.error("Failed to complete exam");
     } finally {
       setSubmitting(false);
     }

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import api from '@/lib/api';
 import { Trash2, Plus, Users as UsersIcon, Stethoscope } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 type Doctor = {
   Doctor_ID: string;
@@ -63,6 +64,7 @@ function DoctorsManager() {
       setDoctors(res.data);
     } catch (err) {
       console.error(err);
+      toast.error("Failed to load doctors");
     }
   };
 
@@ -73,11 +75,12 @@ function DoctorsManager() {
   const onSubmit = async (data: any) => {
     try {
       await api.post('/doctors', data);
+      toast.success("Doctor added successfully");
       reset();
       fetchDoctors();
     } catch (err) {
       console.error(err);
-      alert('Failed to add doctor');
+      toast.error("Failed to add doctor");
     }
   };
 
@@ -164,6 +167,7 @@ function UsersManager() {
       setUsers(res.data);
     } catch (err) {
       console.error(err);
+      toast.error("Failed to load users");
     }
   };
 
@@ -172,9 +176,12 @@ function UsersManager() {
   const onSubmit = async (data: any) => {
     try {
       await api.post('/admin/users', data);
+      toast.success("User created successfully");
       reset();
       fetchUsers();
-    } catch (err) { alert('Failed'); }
+    } catch (err) { 
+        toast.error("Failed to create user");
+    }
   };
 
   const handleDelete = async (username: string) => {
@@ -182,8 +189,11 @@ function UsersManager() {
     try {
       // Axios delete requires 'data' property for body
       await api.delete('/admin/users', { data: { username } });
+      toast.success("User deleted");
       fetchUsers();
-    } catch (err) { alert('Failed'); }
+    } catch (err) { 
+        toast.error("Failed to delete user");
+    }
   };
 
   return (
