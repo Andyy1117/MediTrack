@@ -1,5 +1,6 @@
 import os
 import json
+import uuid
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -10,7 +11,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 app = Flask(__name__)
 
 # Security & Config
-app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "super-secret-dev-key")  # Change in production
+app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "super-secret-dev-key")
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=12)
 jwt = JWTManager(app)
 CORS(app)
@@ -23,27 +24,16 @@ SCOPE = [
     "https://www.googleapis.com/auth/drive"
 ]
 
-# Hardcoded Users (For Prototype) - NOW DEPRECATED in favor of Sheet
-# USERS = {
-#     "reception": {"password": "pass", "role": "receptionist"},
-#     "tech": {"password": "pass", "role": "technician"},
-#     "admin": {"password": "admin", "role": "admin"}
-# }
-
 # Global GSpread Client
 GSPREAD_CLIENT = None
 
 def get_db_connection():
     global GSPREAD_CLIENT
-    
-    # Return existing client if valid
     if GSPREAD_CLIENT:
         try:
-            # Test connection
             GSPREAD_CLIENT.open("Medical_Referrals")
             return GSPREAD_CLIENT
         except Exception:
-            # Reconnect if session expired
             GSPREAD_CLIENT = None
 
     try:
@@ -54,446 +44,243 @@ def get_db_connection():
             creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", SCOPE)
         
         client = gspread.authorize(creds)
-        # Return the Spreadsheet object, not the Client
         return client.open("Medical_Referrals")
     except Exception as e:
         print(f"Error connecting to Google Sheets: {e}")
         return None
 
+def get_worksheet(sheet_name):
+    conn = get_db_connection()
+    if not conn:
+        raise Exception("Database connection failed")
+    try:
+        return conn.worksheet(sheet_name)
+    except gspread.exceptions.WorksheetNotFound:
+        # Auto-create logic could go here, but setup_db.py handles it.
+        raise Exception(f"Worksheet {sheet_name} not found")
+
+# --- Helper: Dynamic Column Index ---
+def get_col_map(worksheet):
+    headers = worksheet.row_values(1)
+    return {name: idx + 1 for idx, name in enumerate(headers)}
+
 # --- Auth Routes ---
 
-@app.route('/api/login', methods=['POST'])
+@app.route('/api/auth/login', methods=['POST'])
 def login():
-    username = request.json.get("username", None)
-    password = request.json.get("password", None)
+    username = request.json.get("username")
+    password = request.json.get("password")
 
-    # Hardcoded fallback for Admin bootstrapping
+    # Hardcoded Admin Fallback
     if username == "admin" and password == "admin123":
          access_token = create_access_token(identity="admin", additional_claims={"role": "admin"})
          return jsonify(access_token=access_token, role="admin")
 
     try:
-        sheet = get_db_connection()
-        if not sheet:
-             return jsonify({"msg": "Database error"}), 500
+        ws = get_worksheet("Users")
+        users = ws.get_all_records()
         
-        # Verify against Users sheet
-        # Expected Columns: Username, Password, Role
-        try:
-            users_ws = sheet.worksheet("Users")
-        except gspread.exceptions.WorksheetNotFound:
-            # Create if not exists
-            users_ws = sheet.add_worksheet(title="Users", rows=100, cols=3)
-            users_ws.append_row(["Username", "Password", "Role"])
+        user = next((u for u in users if str(u.get("Username")) == username and str(u.get("Password")) == password), None)
         
-        users = users_ws.get_all_records()
-        
-        user_found = None
-        for u in users:
-            if str(u.get("Username")) == username and str(u.get("Password")) == password:
-                user_found = u
-                break
-        
-        if not user_found:
-             return jsonify({"msg": "Bad username or password"}), 401
+        if not user:
+            return jsonify({"msg": "Invalid credentials"}), 401
 
-        # Create token
-        additional_claims = {"role": user_found["Role"]}
-        access_token = create_access_token(identity=username, additional_claims=additional_claims)
-        return jsonify(access_token=access_token, role=user_found["Role"])
+        access_token = create_access_token(identity=username, additional_claims={"role": user["Role"]})
+        return jsonify(access_token=access_token, role=user["Role"])
 
     except Exception as e:
         return jsonify({"msg": str(e)}), 500
 
-@app.route('/api/admin/create-user', methods=['POST'])
+# --- Doctor Management (Admin/Technician) ---
+
+@app.route('/api/doctors', methods=['GET'])
 @jwt_required()
-def create_user():
-    claims = get_jwt()
-    if claims["role"] != "admin":
-        return jsonify({"msg": "Access forbidden: Admin only"}), 403
-
-    data = request.json
-    new_username = data.get("username")
-    new_password = data.get("password")
-    new_role = data.get("role") # receptionist, technician, admin
-
-    if not all([new_username, new_password, new_role]):
-        return jsonify({"msg": "Missing fields"}), 400
-
+def get_doctors():
     try:
-        sheet = get_db_connection()
-        try:
-            users_ws = sheet.worksheet("Users")
-        except:
-             users_ws = sheet.add_worksheet(title="Users", rows=100, cols=3)
-             users_ws.append_row(["Username", "Password", "Role"])
-
-        # Check if user exists
-        existing_users = users_ws.col_values(1) # Column A is Username
-        if new_username in existing_users:
-             return jsonify({"msg": "Username already exists"}), 400
-
-        users_ws.append_row([new_username, new_password, new_role])
-        return jsonify({"message": "User created successfully"}), 201
-
+        ws = get_worksheet("Doctors_Master")
+        doctors = ws.get_all_records()
+        return jsonify(doctors), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/admin/get-users', methods=['GET'])
+@app.route('/api/doctors', methods=['POST'])
 @jwt_required()
-def get_users():
+def add_doctor():
     claims = get_jwt()
     if claims["role"] != "admin":
-        return jsonify({"msg": "Access forbidden"}), 403
-    
-    try:
-        sheet = get_db_connection()
-        users_ws = sheet.worksheet("Users")
-        users = users_ws.get_all_records()
-        return jsonify(users), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/api/admin/delete-user', methods=['POST'])
-@jwt_required()
-def delete_user():
-    claims = get_jwt()
-    if claims["role"] != "admin":
-        return jsonify({"msg": "Access forbidden"}), 403
-        
-    username_to_delete = request.json.get("username")
-    if not username_to_delete:
-        return jsonify({"msg": "Missing username"}), 400
-        
-    if username_to_delete == "admin":
-        return jsonify({"msg": "Cannot delete root admin"}), 400
-
-    try:
-        sheet = get_db_connection()
-        users_ws = sheet.worksheet("Users")
-        cell = users_ws.find(username_to_delete)
-        
-        if cell:
-            users_ws.delete_rows(cell.row)
-            return jsonify({"message": "User deleted successfully"}), 200
-        else:
-            return jsonify({"msg": "User not found"}), 404
-            
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/admin/update-user', methods=['POST'])
-@jwt_required()
-def update_user():
-    claims = get_jwt()
-    if claims["role"] != "admin":
-        return jsonify({"msg": "Access forbidden"}), 403
+        return jsonify({"msg": "Admin only"}), 403
         
     data = request.json
-    username = data.get("username")
-    new_password = data.get("password")
-    new_role = data.get("role")
-    
-    if not username:
-        return jsonify({"msg": "Missing username"}), 400
-
     try:
-        sheet = get_db_connection()
-        users_ws = sheet.worksheet("Users")
-        cell = users_ws.find(username)
+        ws = get_worksheet("Doctors_Master")
+        # Generate simple ID if not provided
+        doc_id = str(uuid.uuid4())[:8]
         
-        if cell:
-            row_idx = cell.row
-            if new_password:
-                users_ws.update_cell(row_idx, 2, new_password) # Column B
-            if new_role:
-                users_ws.update_cell(row_idx, 3, new_role) # Column C
-            return jsonify({"message": "User updated successfully"}), 200
-        else:
-            return jsonify({"msg": "User not found"}), 404
-            
+        row = [
+            doc_id,
+            data.get("name"),
+            data.get("hospital"),
+            data.get("department"),
+            data.get("phone"),
+            data.get("role") # Referring or Reporting
+        ]
+        ws.append_row(row)
+        return jsonify({"message": "Doctor added", "id": doc_id}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- Reception Routes ---
+# --- Exam Workflow ---
 
-@app.route('/api/reception/add-record', methods=['POST'])
+@app.route('/api/exams/register', methods=['POST'])
 @jwt_required()
-def add_record():
+def register_exam():
     claims = get_jwt()
-    if claims["role"] != "receptionist":
-        return jsonify({"msg": "Access forbidden: Receptionist only"}), 403
+    if claims["role"] not in ["receptionist", "admin"]: # "Registrar" in requirements, mapping to receptionist role
+        return jsonify({"msg": "Unauthorized"}), 403
 
     data = request.json
     current_user = get_jwt_identity()
     
-    # Timestamp
-    created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    exam_id = str(uuid.uuid4())
+    date_registered = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    # Extract Reception Data
+    # Schema: ID, Status, Patient_Name, National_ID, Phone, Date_Registered, Date_of_Scan, Exam_Type, Referring_Doctor_ID, Reporting_Radiologist_ID, Created_By
     row = [
-        data.get('full_name', ''),              # 0 Full Name
-        data.get('national_id', ''),            # 1 National ID
-        data.get('age', ''),                    # 2 Age
-        data.get('gender', ''),                 # 3 Gender
-        data.get('patient_phone', ''),          # 4 Phone Number (Patient)
-        data.get('emergency_contact', ''),      # 5 Emergency Contact
-        data.get('email', ''),                  # 6 Email
-        data.get('scan_type', ''),              # 7 Scan Type
-        data.get('contrast', 'No'),             # 8 Contrast?
-        data.get('date_booking', ''),           # 9 Date of Booking
-        data.get('date_scan', ''),              # 10 Date of Scan
-        data.get('cancellation_info', ''),      # 11 Cancellation Info
-        data.get('referral_source', ''),        # 12 Referral Source
-        data.get('hospital', ''),               # 13 Hospital
-        data.get('doctor_name', ''),            # 14 Doctor Name
-        data.get('department', ''),             # 15 Department
-        data.get('doctor_phone', ''),           # 16 Phone Number (Doctor)
-        "",                                     # 17 Clinical Notes (Tech)
-        "",                                     # 18 Technician Name (Tech)
-        "",                                     # 19 Scan Quality (Tech)
-        "",                                     # 20 Image Release Date (Tech)
-        "Pending",                              # 21 Result Status (Tech)
-        "",                                     # 22 Radiologist Name (Tech)
-        current_user,                           # 23 Receptionist ID (Audit)
-        "",                                     # 24 Technician ID (Audit)
-        created_at,                             # 25 Created At
-        ""                                      # 26 Updated At
+        exam_id,
+        "Pending",
+        data.get("patient_name"),
+        data.get("national_id"),
+        data.get("phone"),
+        date_registered,
+        "", # Date_of_Scan (empty initially)
+        data.get("exam_type"),
+        "", # Referring_Doctor_ID
+        "", # Reporting_Radiologist_ID
+        current_user
     ]
 
     try:
-        sheet = get_db_connection()
-        if not sheet:
-            return jsonify({"error": "Database connection failed"}), 500
-        
-        ws = sheet.worksheet("Records")
+        ws = get_worksheet("Exams")
         ws.append_row(row)
-        return jsonify({"message": "Record created successfully"}), 201
+        return jsonify({"message": "Exam registered", "id": exam_id}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- Technician Routes ---
-
-@app.route('/api/technician/update-record', methods=['POST'])
+@app.route('/api/exams/pending', methods=['GET'])
 @jwt_required()
-def update_record():
+def get_pending_exams():
     claims = get_jwt()
-    if claims["role"] != "technician":
-        return jsonify({"msg": "Access forbidden: Technician only"}), 403
+    if claims["role"] not in ["technician", "admin"]:
+        return jsonify({"msg": "Unauthorized"}), 403
+
+    try:
+        ws = get_worksheet("Exams")
+        records = ws.get_all_records()
+        pending = [r for r in records if r.get("Status") == "Pending"]
+        return jsonify(pending), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/exams/complete', methods=['PATCH'])
+@jwt_required()
+def complete_exam():
+    claims = get_jwt()
+    if claims["role"] not in ["technician", "admin"]:
+        return jsonify({"msg": "Unauthorized"}), 403
 
     data = request.json
-    current_user = get_jwt_identity()
-    target_id = data.get('national_id') # Using National ID to find row
+    exam_id = data.get("exam_id")
+    ref_doc_id = data.get("referring_doctor_id")
+    rep_rad_id = data.get("reporting_radiologist_id")
     
-    if not target_id:
-        return jsonify({"error": "National ID is required to update record"}), 400
-
-    updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if not all([exam_id, ref_doc_id, rep_rad_id]):
+        return jsonify({"msg": "Missing fields"}), 400
 
     try:
-        sheet = get_db_connection()
-        if not sheet:
-            return jsonify({"error": "Database connection failed"}), 500
+        ws = get_worksheet("Exams")
+        col_map = get_col_map(ws)
         
-        ws = sheet.worksheet("Records")
-        
-        # --- ROBUST COLUMN FINDING ---
-        # Instead of hardcoded indices, we find the column index by Header Name.
-        # This prevents bugs if columns are reordered in the Sheet.
-        
-        headers = ws.row_values(1) # Get first row
-        
-        def get_col_idx(header_name):
-            try:
-                # Add 1 because gspread is 1-indexed, Python list is 0-indexed
-                return headers.index(header_name) + 1
-            except ValueError:
-                return None
-
-        # Find specific column indices based on your exact Sheet headers
-        # Adjust these strings if your Sheet headers are slightly different!
-        col_clinical = get_col_idx("Clinical Notes") or get_col_idx("Эмнэлзүйн мэдээлэл")
-        col_tech = get_col_idx("Technician Name") or get_col_idx("Техникчийн нэр")
-        col_quality = get_col_idx("Scan Quality/Notes") or get_col_idx("Шинжилгээний Чанар/Тэмдэглэл")
-        col_release = get_col_idx("Image/CD Release Date") or get_col_idx("Зураг/CD-г Гаргаж Өгсөн Огноо/Цаг")
-        col_status = get_col_idx("Result Status") or get_col_idx("Хариу гарсан эсэх") or get_col_idx("Result Out")
-        col_radiologist = get_col_idx("Radiologist Name") or get_col_idx("Дүгнэлт гаргах эмчийн нэр")
-        
-        col_tech_id = get_col_idx("Technician ID")
-        col_updated = get_col_idx("Updated At")
-
-        # Find the row by National ID
-        cell = ws.find(target_id)
+        cell = ws.find(exam_id)
         if not cell:
-            return jsonify({"error": "Record not found"}), 404
-            
-        row_idx = cell.row
+            return jsonify({"msg": "Exam not found"}), 404
         
-        updates = []
-        if col_clinical: updates.append({'range': f'{gspread.utils.rowcol_to_a1(row_idx, col_clinical)}', 'values': [[data.get('clinical_notes', '')]]})
-        if col_tech: updates.append({'range': f'{gspread.utils.rowcol_to_a1(row_idx, col_tech)}', 'values': [[data.get('technician_name', '')]]})
-        if col_quality: updates.append({'range': f'{gspread.utils.rowcol_to_a1(row_idx, col_quality)}', 'values': [[data.get('scan_quality', '')]]})
-        if col_release: updates.append({'range': f'{gspread.utils.rowcol_to_a1(row_idx, col_release)}', 'values': [[data.get('image_release_date', '')]]})
-        if col_status: updates.append({'range': f'{gspread.utils.rowcol_to_a1(row_idx, col_status)}', 'values': [[data.get('result_status', '')]]})
-        if col_radiologist: updates.append({'range': f'{gspread.utils.rowcol_to_a1(row_idx, col_radiologist)}', 'values': [[data.get('radiologist_name', '')]]})
+        row = cell.row
+        date_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        if col_tech_id: updates.append({'range': f'{gspread.utils.rowcol_to_a1(row_idx, col_tech_id)}', 'values': [[current_user]]})
-        if col_updated: updates.append({'range': f'{gspread.utils.rowcol_to_a1(row_idx, col_updated)}', 'values': [[updated_at]]})
+        updates = [
+            {'range': gspread.utils.rowcol_to_a1(row, col_map["Status"]), 'values': [["Completed"]]},
+            {'range': gspread.utils.rowcol_to_a1(row, col_map["Referring_Doctor_ID"]), 'values': [[ref_doc_id]]},
+            {'range': gspread.utils.rowcol_to_a1(row, col_map["Reporting_Radiologist_ID"]), 'values': [[rep_rad_id]]},
+            {'range': gspread.utils.rowcol_to_a1(row, col_map["Date_of_Scan"]), 'values': [[date_now]]}
+        ]
         
-        if updates:
-            ws.batch_update(updates)
-            return jsonify({"message": "Record updated successfully"}), 200
-        else:
-            return jsonify({"error": "Could not find target columns in Sheet header"}), 500
-
-    except gspread.exceptions.CellNotFound:
-        return jsonify({"error": "Record not found"}), 404
+        ws.batch_update(updates)
+        return jsonify({"message": "Exam completed"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- General Routes ---
+# --- Admin Reports ---
 
-@app.route('/api/general/get-records', methods=['GET'])
+@app.route('/api/admin/bonus-report', methods=['GET'])
 @jwt_required()
-def get_all_records():
+def bonus_report():
+    claims = get_jwt()
+    if claims["role"] != "admin":
+        return jsonify({"msg": "Admin only"}), 403
+
     try:
-        sheet = get_db_connection()
-        if not sheet:
-            return jsonify({"error": "Database connection failed - Check server logs"}), 500
+        exams_ws = get_worksheet("Exams")
+        doctors_ws = get_worksheet("Doctors_Master")
+        
+        exams = exams_ws.get_all_records()
+        doctors = doctors_ws.get_all_records()
+        
+        # Create Doctor Lookup Map
+        doc_map = {d["Doctor_ID"]: d for d in doctors}
+        
+        # Filter for "Completed"
+        # Filter for Current Week (Mon-Sun)
+        now = datetime.now()
+        start_of_week = now - timedelta(days=now.weekday()) # Monday 00:00
+        start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_of_week = start_of_week + timedelta(days=6, hours=23, minutes=59, seconds=59)
+        
+        report_data = {}
+        
+        for ex in exams:
+            if ex.get("Status") != "Completed":
+                continue
+                
+            scan_date_str = ex.get("Date_of_Scan")
+            if not scan_date_str: continue
             
-        ws = sheet.worksheet("Records")
-        records = ws.get_all_records()
-        return jsonify(records), 200
-    except Exception as e:
-        print(f"GET RECORDS ERROR: {e}")
-        return jsonify({"error": str(e)}), 500
+            try:
+                scan_date = datetime.strptime(scan_date_str, "%Y-%m-%d %H:%M:%S")
+            except:
+                continue
+                
+            if start_of_week <= scan_date <= end_of_week:
+                doc_id = str(ex.get("Referring_Doctor_ID"))
+                if doc_id in doc_map:
+                    if doc_id not in report_data:
+                        report_data[doc_id] = {
+                            "doctor_name": doc_map[doc_id]["Name"],
+                            "hospital": doc_map[doc_id]["Hospital"],
+                            "exam_count": 0,
+                            "total_bonus": 0
+                        }
+                    report_data[doc_id]["exam_count"] += 1
+                    report_data[doc_id]["total_bonus"] += 50000
 
-@app.route('/api/admin/calculate-bonus', methods=['GET'])
-@jwt_required()
-def calculate_bonus():
-    # Bonus Logic: Fixed Weekly Cycle (Friday 17:00 to Friday 17:00)
-    # Accepts optional 'date' parameter to calculate for a specific past week.
-    
-    target_date_str = request.args.get('date')
-    
-    try:
-        sheet = get_db_connection()
-        if not sheet:
-            return jsonify({"error": "Database connection failed"}), 500
-            
-        records_ws = sheet.worksheet("Records")
-        bonus_ws = sheet.worksheet("Weekly_Bonuses")
+        results = [
+            {"doctor_id": k, **v} for k, v in report_data.items()
+        ]
         
-        all_records = records_ws.get_all_records()
-        
-        doctor_stats = {}
-        
-        # --- Time Window Calculation ---
-        if target_date_str:
-            # If date provided, use it as the reference point (End of Day)
-            now = datetime.strptime(target_date_str, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
-        else:
-            now = datetime.now()
-        
-        # Find the most recent Friday 17:00
-        # Weekday: Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=6
-        days_ahead = 4 - now.weekday()
-        if days_ahead > 0: 
-            # It's Mon-Thu. Target is Last Friday.
-             days_ahead -= 7
-        elif days_ahead == 0:
-            # It's Friday. Check time.
-            if now.hour < 17:
-                days_ahead -= 7
-        
-        # Calculate the End Date of the period (Friday 17:00)
-        end_date = now + timedelta(days=days_ahead)
-        end_date = end_date.replace(hour=17, minute=0, second=0, microsecond=0)
-        
-        # Start Date is 7 days before End Date
-        start_date = end_date - timedelta(days=7)
+        return jsonify({
+            "period": f"{start_of_week.strftime('%Y-%m-%d')} to {end_of_week.strftime('%Y-%m-%d')}",
+            "data": results
+        }), 200
 
-        # Format for display
-        period_str = f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
-        
-        for record in all_records:
-            # 1. Try to use 'Created At' for precise timestamp filtering
-            timestamp_str = record.get('Created At') or record.get('Updated At')
-            record_dt = None
-            
-            if timestamp_str:
-                try:
-                    record_dt = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
-                except ValueError:
-                    pass
-            
-            # 2. Fallback to 'Date of Scan' (Treat as 00:00 on that day)
-            if not record_dt:
-                date_str = record.get('Date of Scan') or record.get('Шинжилгээнд орох огноо') or record.get('Шинжилгээ өгөх огноо')
-                if date_str:
-                    try:
-                        record_dt = datetime.strptime(date_str, "%Y-%m-%d")
-                    except ValueError:
-                        continue
-            
-            if not record_dt: continue
-
-            # Check if record falls within the fixed weekly window
-            if start_date < record_dt <= end_date:
-                source = record.get('Referral Source', '') or record.get('Илгээсэн эх сурвалж', '') or record.get('Эх сурвалж', '')
-                if source not in ["Facebook", "Self", "Unknown", "Өөрөө", "Self/Facebook"]:
-                    doctor = record.get('Doctor Name') or record.get('Эмчийн нэр')
-                    patient_name = record.get('Full Name') or record.get('Name') or record.get('Овог Нэр') or "Unknown"
-                    
-                    if doctor and doctor != "N/A":
-                        if doctor not in doctor_stats:
-                            doctor_stats[doctor] = []
-                        doctor_stats[doctor].append(patient_name)
-        
-        results = []
-        current_date_str = datetime.now().strftime("%Y-%m-%d")
-        
-        for doctor, patients in doctor_stats.items():
-            count = len(patients)
-            bonus_amount = count * 50000
-            patients_str = ", ".join(patients)
-            
-            results.append({
-                "Doctor": doctor,
-                "Count": count,
-                "Bonus": bonus_amount,
-                "Patients": patients,
-                "Period": period_str
-            })
-            
-            # Only append to sheet if we are calculating for the CURRENT cycle or if specifically requested to save history?
-            # For now, let's always append so there is a record of the calculation being run.
-            # But duplicate checks might be good? Skipping for simplicity/flexibility.
-            bonus_ws.append_row([current_date_str, doctor, count, bonus_amount, patients_str, period_str])
-            
-        return jsonify(results), 200
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/admin/bonus-history', methods=['GET'])
-@jwt_required()
-def get_bonus_history():
-    try:
-        sheet = get_db_connection()
-        if not sheet:
-             return jsonify({"error": "Database connection failed"}), 500
-        
-        bonus_ws = sheet.worksheet("Weekly_Bonuses")
-        records = bonus_ws.get_all_records()
-        # If sheet is empty or only headers, this works.
-        # But if headers are missing, might fail. Assuming headers exist:
-        # Date Calculated, Doctor, Count, Bonus, Patients, Period
-        
-        return jsonify(records), 200
-    except gspread.exceptions.WorksheetNotFound:
-         return jsonify([]), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
