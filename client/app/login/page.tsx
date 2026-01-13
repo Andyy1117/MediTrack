@@ -13,7 +13,7 @@ export default function LoginPage() {
   const onSubmit = async (data: any) => {
     setError('');
     try {
-      const response = await api.post('/login', data);
+      const response = await api.post('/auth/login', data);
       const { access_token, role } = response.data;
       login(access_token, role, data.username);
     } catch (err: any) {
@@ -69,4 +69,6 @@ export default function LoginPage() {
     </div>
   );
 }
+
+
 

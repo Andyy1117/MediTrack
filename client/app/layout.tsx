@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Navbar from "@/components/Navbar";
+import Sidebar from "@/components/Sidebar";
 import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
 
@@ -30,10 +30,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-gray-50`}
       >
         <AuthProvider>
-          <Navbar />
-          <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            {children}
-          </main>
+          <div className="flex min-h-screen">
+            <Sidebar />
+            <main className="flex-1 p-8 overflow-auto">
+              {children}
+            </main>
+          </div>
         </AuthProvider>
       </body>
     </html>
