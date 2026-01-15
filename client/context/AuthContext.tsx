@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
-type UserRole = 'receptionist' | 'technician' | null;
+type UserRole = 'Reception' | 'Technician' | 'Admin' | null;
 
 interface AuthContextType {
   user: { role: UserRole; username: string } | null;
@@ -40,11 +40,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser({ role, username });
     
     // Redirect based on role
-    if (role === 'receptionist') {
+    if (role === 'Reception') {
       router.push('/reception/add-record');
-    } else if (role === 'technician') {
-      router.push('/technician/dashboard');
-    } else if (role === 'admin') {
+    } else if (role === 'Technician') {
+      router.push('/technician/pending');
+    } else if (role === 'Admin') {
       router.push('/admin');
     } else {
         router.push('/');

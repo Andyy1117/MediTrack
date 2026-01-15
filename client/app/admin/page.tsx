@@ -1,259 +1,141 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useMemo, useState } from 'react';
 import api from '@/lib/api';
-import { Trash2, Plus, Users as UsersIcon, Stethoscope } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { Activity, CalendarCheck, ClipboardList, TrendingUp } from 'lucide-react';
 
-type Doctor = {
-  Doctor_ID: string;
-  Name: string;
-  Hospital: string;
-  Department: string;
-  Phone: string;
-  Role: string;
+type BonusRow = {
+  doctor_id: number;
+  doctor_name: string;
+  hospital: string;
+  exam_count: number;
+  total_bonus: number;
+};
+
+type Exam = {
+  id: string;
+  exam_date?: string;
+};
+
+type RevenueSeriesRow = {
+  label: string;
+  total: number;
 };
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'doctors' | 'users'>('doctors');
+  const [todayExams, setTodayExams] = useState<Exam[]>([]);
+  const [pendingExamsCount, setPendingExamsCount] = useState(0);
+  const [topReferrers, setTopReferrers] = useState<BonusRow[]>([]);
+  const [revenueSeries, setRevenueSeries] = useState<RevenueSeriesRow[]>([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const [todayRes, pendingRes, bonusRes, revenueRes] = await Promise.all([
+          api.get('/exams/today'),
+          api.get('/exams/pending'),
+          api.get('/admin/bonus-report'),
+          api.get('/admin/revenue-week')
+        ]);
+        setTodayExams(todayRes.data || []);
+        setPendingExamsCount((pendingRes.data || []).length);
+        setTopReferrers((bonusRes.data?.data || []).slice(0, 5));
+        setRevenueSeries(revenueRes.data?.series || []);
+        setTotalRevenue(revenueRes.data?.total_revenue || 0);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
+
+  const todayCount = useMemo(() => todayExams.length, [todayExams]);
+  const revenueMax = Math.max(...revenueSeries.map((r) => r.total), 1);
 
   return (
     <div className="max-w-6xl mx-auto py-8 px-4">
       <h1 className="text-2xl font-bold mb-6 text-gray-900">Admin Dashboard</h1>
 
-      <div className="mb-6 border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('doctors')}
-            className={`${
-              activeTab === 'doctors'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
-          >
-            <Stethoscope className="mr-2 h-5 w-5" />
-            Doctors Master List
-          </button>
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`${
-              activeTab === 'users'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
-          >
-            <UsersIcon className="mr-2 h-5 w-5" />
-            System Users
-          </button>
-        </nav>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+        <DashboardCard
+          title="Today's Scheduled Patients"
+          value={loading ? '...' : todayCount}
+          icon={<CalendarCheck className="h-6 w-6 text-indigo-600" />}
+        />
+        <DashboardCard
+          title="Pending Reports"
+          value={loading ? '...' : pendingExamsCount}
+          icon={<ClipboardList className="h-6 w-6 text-amber-600" />}
+        />
+        <DashboardCard
+          title="Weekly Top Referrers"
+          value={loading ? '...' : topReferrers.length}
+          icon={<TrendingUp className="h-6 w-6 text-emerald-600" />}
+        />
+        <DashboardCard
+          title="Weekly Revenue (MNT)"
+          value={loading ? '...' : totalRevenue}
+          icon={<Activity className="h-6 w-6 text-purple-600" />}
+        />
       </div>
 
-      {activeTab === 'doctors' ? <DoctorsManager /> : <UsersManager />}
-    </div>
-  );
-}
-
-function DoctorsManager() {
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm();
-
-  const fetchDoctors = async () => {
-    try {
-      const res = await api.get('/doctors');
-      setDoctors(res.data);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load doctors");
-    }
-  };
-
-  useEffect(() => {
-    fetchDoctors();
-  }, []);
-
-  const onSubmit = async (data: any) => {
-    try {
-      await api.post('/doctors', data);
-      toast.success("Doctor added successfully");
-      reset();
-      fetchDoctors();
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to add doctor");
-    }
-  };
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-      {/* Add Doctor Form */}
-      <div className="md:col-span-1 bg-white p-6 rounded-lg shadow h-fit">
-        <h2 className="text-lg font-medium mb-4 flex items-center">
-            <Plus className="mr-2 h-5 w-5" /> Add New Doctor
-        </h2>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Name</label>
-            <input {...register('name', { required: true })} className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm sm:text-sm" placeholder="Dr. Name" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Weekly Revenue (Admin)</h2>
+          <div className="space-y-3">
+          {revenueSeries.map((row) => (
+              <div key={row.label} className="flex items-center gap-4">
+                <span className="w-10 text-sm text-gray-500">{row.label}</span>
+                <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-3 bg-indigo-500 rounded-full"
+                    style={{ width: `${(row.total / revenueMax) * 100}%` }}
+                  />
+                </div>
+                <span className="w-16 text-sm text-gray-500 text-right">{row.total}</span>
+              </div>
+            ))}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Hospital</label>
-            <input {...register('hospital')} className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm sm:text-sm" placeholder="Hospital Name" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Department</label>
-            <input {...register('department')} className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm sm:text-sm" placeholder="Department" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Phone</label>
-            <input {...register('phone')} className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm sm:text-sm" placeholder="Phone" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Role</label>
-            <select {...register('role', { required: true })} className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm sm:text-sm">
-                <option value="Referring">Referring Doctor</option>
-                <option value="Reporting">Reporting Radiologist</option>
-            </select>
-          </div>
-          <button type="submit" disabled={isSubmitting} className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">
-            {isSubmitting ? 'Adding...' : 'Add Doctor'}
-          </button>
-        </form>
-      </div>
-
-      {/* Doctors List */}
-      <div className="md:col-span-2 bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium">Registered Doctors</h2>
-        </div>
-        <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-                <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hospital/Dept</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-                {doctors.map((doc, i) => (
-                <tr key={i}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{doc.Name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{doc.Hospital} - {doc.Department}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${doc.Role === 'Reporting' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
-                            {doc.Role}
-                        </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{doc.Phone}</td>
-                </tr>
-                ))}
-            </tbody>
-            </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function UsersManager() {
-  const [users, setUsers] = useState<any[]>([]);
-  const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm();
-  
-  const fetchUsers = async () => {
-    try {
-      const res = await api.get('/admin/users');
-      setUsers(res.data);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load users");
-    }
-  };
-
-  useEffect(() => { fetchUsers(); }, []);
-
-  const onSubmit = async (data: any) => {
-    try {
-      await api.post('/admin/users', data);
-      toast.success("User created successfully");
-      reset();
-      fetchUsers();
-    } catch (err) { 
-        toast.error("Failed to create user");
-    }
-  };
-
-  const handleDelete = async (username: string) => {
-    if (!confirm('Are you sure?')) return;
-    try {
-      // Axios delete requires 'data' property for body
-      await api.delete('/admin/users', { data: { username } });
-      toast.success("User deleted");
-      fetchUsers();
-    } catch (err) { 
-        toast.error("Failed to delete user");
-    }
-  };
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Create User Form */}
-        <div className="md:col-span-1 bg-white p-6 rounded-lg shadow h-fit">
-          <h2 className="text-lg font-medium mb-4">Create System User</h2>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Username</label>
-              <input {...register('username', { required: true })} className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm sm:text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <input type="text" {...register('password', { required: true })} className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm sm:text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Role</label>
-              <select {...register('role', { required: true })} className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm sm:text-sm">
-                <option value="receptionist">Receptionist</option>
-                <option value="technician">Technician</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-            <button type="submit" disabled={isSubmitting} className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">
-              Create User
-            </button>
-          </form>
+          {revenueSeries.length === 0 && (
+            <p className="text-xs text-gray-400 mt-3">No revenue data yet.</p>
+          )}
         </div>
 
-        {/* User List */}
-        <div className="md:col-span-2 bg-white rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium">System Users</h2>
-          </div>
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Username</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {users.map((u, i) => (
-                <tr key={i}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{u.Username}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{u.Role}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {u.Username !== 'admin' && (
-                        <button onClick={() => handleDelete(u.Username)} className="text-red-600 hover:text-red-900">
-                            <Trash2 className="h-5 w-5" />
-                        </button>
-                    )}
-                  </td>
-                </tr>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Top Referring Doctors</h2>
+          {topReferrers.length === 0 ? (
+            <p className="text-sm text-gray-500">No referral data yet.</p>
+          ) : (
+            <ul className="space-y-3">
+              {topReferrers.map((doc) => (
+                <li key={doc.doctor_id} className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{doc.doctor_name}</p>
+                    <p className="text-xs text-gray-500">{doc.hospital}</p>
+                  </div>
+                  <span className="text-sm text-gray-600">{doc.exam_count} exams</span>
+                </li>
               ))}
-            </tbody>
-          </table>
+            </ul>
+          )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function DashboardCard({ title, value, icon }: { title: string; value: string | number; icon: React.ReactNode }) {
+  return (
+    <div className="bg-white rounded-lg shadow p-5 flex items-center justify-between">
+      <div>
+        <p className="text-sm text-gray-500">{title}</p>
+        <p className="text-2xl font-semibold text-gray-900 mt-1">{value}</p>
+      </div>
+      <div className="p-3 bg-gray-50 rounded-full">{icon}</div>
     </div>
   );
 }

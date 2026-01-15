@@ -22,27 +22,51 @@ export default function Sidebar() {
   const links = [
     { 
       href: '/reception/add-record', 
-      label: 'Registration', 
+      label: 'Register Patient', 
       icon: UserPlus, 
-      roles: ['receptionist', 'admin'] 
+      roles: ['Reception', 'Admin'] 
     },
     { 
-      href: '/technician/dashboard', 
-      label: 'Exam Queue', 
+      href: '/reception/schedule', 
+      label: "Today's Schedule", 
+      icon: LayoutDashboard, 
+      roles: ['Reception', 'Admin'] 
+    },
+    { 
+      href: '/technician/pending', 
+      label: 'Pending Scans', 
       icon: Stethoscope, 
-      roles: ['technician', 'admin'] 
+      roles: ['Technician', 'Admin'] 
     },
     { 
-      href: '/admin', 
-      label: 'Admin Panel', 
-      icon: Users, 
-      roles: ['admin'] 
+      href: '/technician/reports', 
+      label: 'Report Management', 
+      icon: FileText, 
+      roles: ['Technician', 'Admin'] 
     },
-    {
-      href: '/admin/bonus-report',
-      label: 'Bonus Report',
-      icon: FileText,
-      roles: ['admin']
+    { 
+      href: '/admin/doctors', 
+      label: 'Doctor Management', 
+      icon: Users, 
+      roles: ['Admin'] 
+    },
+    { 
+      href: '/admin/financials', 
+      label: 'Financial Reports', 
+      icon: FileText, 
+      roles: ['Admin'] 
+    },
+    { 
+      href: '/admin/audit-logs', 
+      label: 'Audit Logs', 
+      icon: FileText, 
+      roles: ['Admin'] 
+    },
+    { 
+      href: '/admin/users', 
+      label: 'User Management', 
+      icon: Users, 
+      roles: ['Admin'] 
     }
   ];
 
@@ -97,5 +121,6 @@ export default function Sidebar() {
     </div>
   );
 }
+
 
 

@@ -1,7 +1,9 @@
 flask
 flask-cors
-gspread
-oauth2client
+flask-sqlalchemy
+psycopg2-binary
+flask-migrate
 python-dotenv
 gunicorn
 flask-jwt-extended
+sqlalchemy-serializer

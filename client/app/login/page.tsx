@@ -26,49 +26,65 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Нэвтрэх
-          </h2>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="username" className="sr-only">Хэрэглэгчийн нэр</label>
-              <input
-                id="username"
-                type="text"
-                {...register('username', { required: 'Хэрэглэгчийн нэр оруулна уу' })}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Хэрэглэгчийн нэр"
-              />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md">
+        <div className="rounded-2xl bg-white/90 shadow-xl ring-1 ring-slate-200 px-6 py-8 sm:px-8">
+          <div className="flex flex-col items-center text-center">
+            <div className="h-16 w-16 rounded-full bg-indigo-50 flex items-center justify-center">
+              <img src="/anke-mri-logo.svg" alt="Anke MRI" className="h-10 w-10" />
             </div>
-            <div>
-              <label htmlFor="password" className="sr-only">Нууц үг</label>
-              <input
-                id="password"
-                type="password"
-                {...register('password', { required: 'Нууц үг оруулна уу' })}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Нууц үг"
-              />
-            </div>
+            <h1 className="mt-4 text-2xl font-semibold text-slate-900">Anke MRI</h1>
+            <p className="mt-1 text-sm text-slate-500">Medical Center</p>
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900">
+              Нэвтрэх
+            </h2>
           </div>
+          <form className="mt-8 space-y-5" onSubmit={handleSubmit(onSubmit)}>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="username" className="sr-only">Хэрэглэгчийн нэр</label>
+                <input
+                  id="username"
+                  type="text"
+                  autoComplete="username"
+                  {...register('username', { required: 'Хэрэглэгчийн нэр оруулна уу' })}
+                  className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 sm:text-sm"
+                  placeholder="Хэрэглэгчийн нэр"
+                />
+                {errors.username && (
+                  <p className="mt-1 text-xs text-red-500">{String(errors.username.message)}</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="password" className="sr-only">Нууц үг</label>
+                <input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  {...register('password', { required: 'Нууц үг оруулна уу' })}
+                  className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 sm:text-sm"
+                  placeholder="Нууц үг"
+                />
+                {errors.password && (
+                  <p className="mt-1 text-xs text-red-500">{String(errors.password.message)}</p>
+                )}
+              </div>
+            </div>
 
-          {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+            {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</div>}
 
-          <div>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="group relative w-full flex justify-center rounded-md bg-indigo-600 py-2.5 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isSubmitting ? 'Нэвтэрч байна...' : 'Нэвтрэх'}
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
+        <p className="mt-6 text-center text-xs text-slate-500">
+          Secure access to imaging records
+        </p>
       </div>
     </div>
   );
