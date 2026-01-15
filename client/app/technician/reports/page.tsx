@@ -25,10 +25,13 @@ export default function ReportManagementPage() {
     const fetchReports = async () => {
       try {
         const res = await api.get('/exams/reports');
-        setExams(res.data || []);
+        setExams(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error(err);
-        toast.error('Failed to load report queue');
+        const message = (err as any)?.response?.data?.msg || 'Failed to load report queue';
+        toast.error(message);
+        setExams([]);
+        setSelected(null);
       }
     };
     fetchReports();

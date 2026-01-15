@@ -22,10 +22,12 @@ export default function DoctorsPage() {
   const fetchDoctors = async () => {
     try {
       const res = await api.get('/doctors');
-      setDoctors(res.data || []);
+      setDoctors(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(err);
-      toast.error('Failed to load doctors');
+      const message = (err as any)?.response?.data?.msg || 'Failed to load doctors';
+      toast.error(message);
+      setDoctors([]);
     }
   };
 

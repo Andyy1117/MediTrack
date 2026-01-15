@@ -7,7 +7,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
 from models import db, User, Patient, Exam, Doctor, AuditLog
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, text
 from sqlalchemy.exc import IntegrityError
 from dotenv import load_dotenv
 
@@ -497,16 +497,27 @@ def lock_records():
 
 _tables_initialized = False
 
+def ensure_doctors_role_column():
+    if db.engine.dialect.name != "sqlite":
+        return
+    result = db.session.execute(text("PRAGMA table_info(doctors)")).all()
+    columns = {row[1] for row in result}
+    if "role" not in columns:
+        db.session.execute(text("ALTER TABLE doctors ADD COLUMN role VARCHAR(50)"))
+        db.session.commit()
+
 @app.before_request
 def create_tables_once():
     global _tables_initialized
     if _tables_initialized:
         return
     db.create_all()
+    ensure_doctors_role_column()
     _tables_initialized = True
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        ensure_doctors_role_column()
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', debug=False, port=port)

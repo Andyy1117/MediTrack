@@ -33,17 +33,44 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const [todayRes, pendingRes, bonusRes, revenueRes] = await Promise.all([
+        const results = await Promise.allSettled([
           api.get('/exams/today'),
           api.get('/exams/pending'),
           api.get('/admin/bonus-report'),
           api.get('/admin/revenue-week')
         ]);
-        setTodayExams(todayRes.data || []);
-        setPendingExamsCount((pendingRes.data || []).length);
-        setTopReferrers((bonusRes.data?.data || []).slice(0, 5));
-        setRevenueSeries(revenueRes.data?.series || []);
-        setTotalRevenue(revenueRes.data?.total_revenue || 0);
+
+        const [todayRes, pendingRes, bonusRes, revenueRes] = results;
+
+        if (todayRes.status === 'fulfilled') {
+          setTodayExams(todayRes.value.data || []);
+        } else {
+          console.error('Failed to load today exams', todayRes.reason);
+          setTodayExams([]);
+        }
+
+        if (pendingRes.status === 'fulfilled') {
+          setPendingExamsCount((pendingRes.value.data || []).length);
+        } else {
+          console.error('Failed to load pending exams', pendingRes.reason);
+          setPendingExamsCount(0);
+        }
+
+        if (bonusRes.status === 'fulfilled') {
+          setTopReferrers((bonusRes.value.data?.data || []).slice(0, 5));
+        } else {
+          console.error('Failed to load bonus report', bonusRes.reason);
+          setTopReferrers([]);
+        }
+
+        if (revenueRes.status === 'fulfilled') {
+          setRevenueSeries(revenueRes.value.data?.series || []);
+          setTotalRevenue(revenueRes.value.data?.total_revenue || 0);
+        } else {
+          console.error('Failed to load revenue report', revenueRes.reason);
+          setRevenueSeries([]);
+          setTotalRevenue(0);
+        }
       } catch (err) {
         console.error(err);
       } finally {

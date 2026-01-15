@@ -40,12 +40,26 @@ export default function TechnicianDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [examsRes, docsRes] = await Promise.all([
+        const results = await Promise.allSettled([
           api.get('/exams/pending'),
           api.get('/doctors')
         ]);
-        setExams(examsRes.data);
-        setDoctors(docsRes.data);
+
+        const [examsRes, docsRes] = results;
+
+        if (examsRes.status === 'fulfilled') {
+          setExams(examsRes.value.data || []);
+        } else {
+          console.error('Failed to load pending exams', examsRes.reason);
+          setExams([]);
+        }
+
+        if (docsRes.status === 'fulfilled') {
+          setDoctors(docsRes.value.data || []);
+        } else {
+          console.error('Failed to load doctors', docsRes.reason);
+          setDoctors([]);
+        }
       } catch (err) {
         console.error("Error fetching data:", err);
         toast.error("Failed to load data");

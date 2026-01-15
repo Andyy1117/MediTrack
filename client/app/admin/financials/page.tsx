@@ -26,13 +26,28 @@ export default function FinancialReportsPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [bonusRes, revenueRes] = await Promise.all([
+        const results = await Promise.allSettled([
           api.get('/admin/bonus-report'),
           api.get('/admin/revenue-week')
         ]);
-        setBonusRows(bonusRes.data?.data || []);
-        setRevenueRows(revenueRes.data?.series || []);
-        setTotalRevenue(revenueRes.data?.total_revenue || 0);
+
+        const [bonusRes, revenueRes] = results;
+
+        if (bonusRes.status === 'fulfilled') {
+          setBonusRows(bonusRes.value.data?.data || []);
+        } else {
+          console.error('Failed to load bonus report', bonusRes.reason);
+          setBonusRows([]);
+        }
+
+        if (revenueRes.status === 'fulfilled') {
+          setRevenueRows(revenueRes.value.data?.series || []);
+          setTotalRevenue(revenueRes.value.data?.total_revenue || 0);
+        } else {
+          console.error('Failed to load revenue report', revenueRes.reason);
+          setRevenueRows([]);
+          setTotalRevenue(0);
+        }
       } catch (err) {
         console.error(err);
       } finally {
