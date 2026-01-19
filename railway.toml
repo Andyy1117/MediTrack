@@ -1,6 +1,5 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "python -m pip install -r server/requirements.txt"
 
 [deploy]
 startCommand = "cd server && gunicorn app:app"

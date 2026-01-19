@@ -2,7 +2,10 @@
 nixPkgs = ["python311"]
 
 [phases.install]
-cmds = ["python -m pip install -r server/requirements.txt"]
+cmds = [
+  "python -m ensurepip --upgrade",
+  "python -m pip install -r server/requirements.txt"
+]
 
 [start]
 cmd = "cd server && gunicorn app:app"
