@@ -510,6 +510,20 @@ def ensure_doctors_role_column():
         db.session.execute(text("ALTER TABLE doctors ADD COLUMN role VARCHAR(50)"))
         db.session.commit()
 
+def ensure_seed_admin():
+    username = os.environ.get("ADMIN_USERNAME")
+    password = os.environ.get("ADMIN_PASSWORD")
+    role = os.environ.get("ADMIN_ROLE", "Admin")
+    if not username or not password:
+        return
+    existing = User.query.filter_by(username=username).first()
+    if existing:
+        return
+    user = User(username=username, role=role)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+
 @app.before_request
 def create_tables_once():
     global _tables_initialized
@@ -517,11 +531,13 @@ def create_tables_once():
         return
     db.create_all()
     ensure_doctors_role_column()
+    ensure_seed_admin()
     _tables_initialized = True
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         ensure_doctors_role_column()
+        ensure_seed_admin()
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', debug=False, port=port)
