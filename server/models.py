@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 import json
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import event, inspect
@@ -195,6 +195,8 @@ def receive_after_flush(session, flush_context):
 
 def serialize_value(value):
     if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, date):
         return value.isoformat()
     return value
 
