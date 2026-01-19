@@ -22,49 +22,49 @@ export default function Sidebar() {
   const links = [
     { 
       href: '/reception/add-record', 
-      label: 'Register Patient', 
+      label: 'Өвчтөн бүртгэх', 
       icon: UserPlus, 
       roles: ['Reception', 'Admin'] 
     },
     { 
       href: '/reception/schedule', 
-      label: "Today's Schedule", 
+      label: "Өнөөдрийн хуваарь", 
       icon: LayoutDashboard, 
       roles: ['Reception', 'Admin'] 
     },
     { 
       href: '/technician/pending', 
-      label: 'Pending Scans', 
+      label: 'Хүлээгдэж буй шинжилгээ', 
       icon: Stethoscope, 
       roles: ['Technician', 'Admin'] 
     },
     { 
       href: '/technician/reports', 
-      label: 'Report Management', 
+      label: 'Дүгнэлт удирдлага', 
       icon: FileText, 
       roles: ['Technician', 'Admin'] 
     },
     { 
       href: '/admin/doctors', 
-      label: 'Doctor Management', 
+      label: 'Эмчийн бүртгэл', 
       icon: Users, 
       roles: ['Admin'] 
     },
     { 
       href: '/admin/financials', 
-      label: 'Financial Reports', 
+      label: 'Санхүүгийн тайлан', 
       icon: FileText, 
       roles: ['Admin'] 
     },
     { 
       href: '/admin/audit-logs', 
-      label: 'Audit Logs', 
+      label: 'Аудитын бүртгэл', 
       icon: FileText, 
       roles: ['Admin'] 
     },
     { 
       href: '/admin/users', 
-      label: 'User Management', 
+      label: 'Хэрэглэгчийн удирдлага', 
       icon: Users, 
       roles: ['Admin'] 
     }
@@ -73,6 +73,14 @@ export default function Sidebar() {
   const filteredLinks = links.filter(link => 
     link.roles.includes(user.role as string)
   );
+
+  const roleLabel = (role?: string) => {
+    if (!role) return '';
+    if (role === 'Reception') return 'Бүртгэл';
+    if (role === 'Technician') return 'Техникч';
+    if (role === 'Admin') return 'Админ';
+    return role;
+  };
 
   return (
     <div className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col">
@@ -107,7 +115,7 @@ export default function Sidebar() {
         <div className="flex items-center mb-4 px-4">
           <div>
             <p className="text-sm font-medium text-gray-900">{user.username}</p>
-            <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+            <p className="text-xs text-gray-500 capitalize">{roleLabel(user.role as string)}</p>
           </div>
         </div>
         <button
@@ -115,7 +123,7 @@ export default function Sidebar() {
           className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
         >
           <LogOut className="mr-3 h-5 w-5" />
-          Sign Out
+          Гарах
         </button>
       </div>
     </div>

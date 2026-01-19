@@ -28,20 +28,34 @@ type FormData = {
 };
 
 const EXAM_TYPES = [
-  "MRI Brain",
-  "MRI Spine",
-  "MRI Knee",
-  "MRI Abdomen",
-  "CT Head",
-  "CT Chest",
-  "CT Abdomen",
-  "X-Ray",
-  "Ultrasound"
+  { value: "MRI Brain", label: "MRI Тархи" },
+  { value: "MRI Spine", label: "MRI Нуруу" },
+  { value: "MRI Knee", label: "MRI Өвдөг" },
+  { value: "MRI Abdomen", label: "MRI Хэвлий" },
+  { value: "CT Head", label: "CT Толгой" },
+  { value: "CT Chest", label: "CT Цээж" },
+  { value: "CT Abdomen", label: "CT Хэвлий" },
+  { value: "X-Ray", label: "Рентген" },
+  { value: "Ultrasound", label: "Хэт авиан" }
 ];
 
-const PAYMENT_STATUSES = ["Paid", "Partial", "Unpaid"];
-const PAYMENT_METHODS = ["Cash", "Card", "Transfer"];
-const INFO_SOURCES = ["Referred", "Facebook", "Walk-in", "Instagram", "Other"];
+const PAYMENT_STATUSES = [
+  { value: "Paid", label: "Төлсөн" },
+  { value: "Partial", label: "Хэсэгчлэн" },
+  { value: "Unpaid", label: "Төлөөгүй" }
+];
+const PAYMENT_METHODS = [
+  { value: "Cash", label: "Бэлэн" },
+  { value: "Card", label: "Карт" },
+  { value: "Transfer", label: "Шилжүүлэг" }
+];
+const INFO_SOURCES = [
+  { value: "Referred", label: "Илгээсэн" },
+  { value: "Facebook", label: "Facebook" },
+  { value: "Walk-in", label: "Өөрөө ирсэн" },
+  { value: "Instagram", label: "Instagram" },
+  { value: "Other", label: "Бусад" }
+];
 
 export default function ReceptionAddRecord() {
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormData>();
@@ -88,10 +102,10 @@ export default function ReceptionAddRecord() {
         info_source: data.info_source
       });
 
-      toast.success("Patient and exam registered!");
+      toast.success("Өвчтөн ба шинжилгээ амжилттай бүртгэгдлээ!");
       reset(); // Clear form
     } catch (error: any) {
-      const message = error.response?.data?.msg || error.response?.data?.error || "Error registering patient";
+      const message = error.response?.data?.msg || error.response?.data?.error || "Өвчтөн бүртгэхэд алдаа гарлаа";
       toast.error(message);
     } finally {
       setSaving(false);
@@ -100,118 +114,118 @@ export default function ReceptionAddRecord() {
 
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6 text-gray-900">Register Patient & Exam</h1>
+      <h1 className="text-2xl font-bold mb-6 text-gray-900">Өвчтөн ба шинжилгээ бүртгэх</h1>
       
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-white p-6 rounded-lg shadow">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Patient Details</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Өвчтөний мэдээлэл</h2>
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700">First Name</label>
+          <label className="block text-sm font-medium text-gray-700">Нэр</label>
           <input 
-            {...register('first_name', { required: 'First name is required' })} 
+            {...register('first_name', { required: 'Нэр заавал шаардлагатай' })} 
             className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm text-gray-900 focus:border-indigo-500 sm:text-sm" 
-            placeholder="First name" 
+            placeholder="Нэр" 
           />
           {errors.first_name && <p className="text-red-500 text-xs mt-1">{errors.first_name.message}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Last Name</label>
+          <label className="block text-sm font-medium text-gray-700">Овог</label>
           <input 
-            {...register('last_name', { required: 'Last name is required' })} 
+            {...register('last_name', { required: 'Овог заавал шаардлагатай' })} 
             className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm text-gray-900 focus:border-indigo-500 sm:text-sm" 
-            placeholder="Last name" 
+            placeholder="Овог" 
           />
           {errors.last_name && <p className="text-red-500 text-xs mt-1">{errors.last_name.message}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">National ID (Reg No)</label>
+          <label className="block text-sm font-medium text-gray-700">Регистр / Иргэний үнэмлэх</label>
           <input 
-            {...register('national_id', { required: 'National ID is required' })} 
+            {...register('national_id', { required: 'Регистр заавал шаардлагатай' })} 
             className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm text-gray-900 focus:border-indigo-500 sm:text-sm" 
-            placeholder="National ID" 
+            placeholder="Регистр" 
           />
           {errors.national_id && <p className="text-red-500 text-xs mt-1">{errors.national_id.message}</p>}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Age</label>
+            <label className="block text-sm font-medium text-gray-700">Нас</label>
             <input 
               type="number"
               {...register('age')} 
               className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm text-gray-900 focus:border-indigo-500 sm:text-sm" 
-              placeholder="Age" 
+              placeholder="Нас" 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Gender</label>
+            <label className="block text-sm font-medium text-gray-700">Хүйс</label>
             <select 
               {...register('gender')} 
               className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm text-gray-900 focus:border-indigo-500 sm:text-sm"
             >
-              <option value="">Select...</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
+              <option value="">Сонгох...</option>
+              <option value="Male">Эр</option>
+              <option value="Female">Эм</option>
+              <option value="Other">Бусад</option>
             </select>
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+          <label className="block text-sm font-medium text-gray-700">Утасны дугаар</label>
           <input 
-            {...register('phone', { required: 'Phone is required' })} 
+            {...register('phone', { required: 'Утас заавал шаардлагатай' })} 
             className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm text-gray-900 focus:border-indigo-500 sm:text-sm" 
-            placeholder="Phone Number" 
+            placeholder="Утасны дугаар" 
           />
           {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Email</label>
+          <label className="block text-sm font-medium text-gray-700">Имэйл</label>
           <input 
             type="email"
             {...register('email')} 
             className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm text-gray-900 focus:border-indigo-500 sm:text-sm" 
-            placeholder="Email" 
+            placeholder="Имэйл" 
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Address</label>
+          <label className="block text-sm font-medium text-gray-700">Хаяг</label>
           <input 
             {...register('address')} 
             className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm text-gray-900 focus:border-indigo-500 sm:text-sm" 
-            placeholder="Address" 
+            placeholder="Хаяг" 
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Emergency Contact</label>
+          <label className="block text-sm font-medium text-gray-700">Яаралтай холбоо барих хүн</label>
           <input 
             {...register('emergency_contact')} 
             className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm text-gray-900 focus:border-indigo-500 sm:text-sm" 
-            placeholder="Emergency Contact" 
+            placeholder="Яаралтай холбоо барих хүн" 
           />
         </div>
 
         <div className="pt-4">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Exam Details</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Шинжилгээний мэдээлэл</h2>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Exam Type</label>
+          <label className="block text-sm font-medium text-gray-700">Шинжилгээний төрөл</label>
           <select 
-            {...register('exam_type', { required: 'Exam Type is required' })} 
+            {...register('exam_type', { required: 'Шинжилгээний төрөл заавал шаардлагатай' })} 
             className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm text-gray-900 focus:border-indigo-500 sm:text-sm"
           >
-            <option value="">Select Exam Type...</option>
-            {EXAM_TYPES.map(type => (
-              <option key={type} value={type}>{type}</option>
+            <option value="">Төрөл сонгох...</option>
+            {EXAM_TYPES.map((type) => (
+              <option key={type.value} value={type.value}>{type.label}</option>
             ))}
           </select>
           {errors.exam_type && <p className="text-red-500 text-xs mt-1">{errors.exam_type.message}</p>}
@@ -219,7 +233,7 @@ export default function ReceptionAddRecord() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Exam Date</label>
+            <label className="block text-sm font-medium text-gray-700">Шинжилгээний огноо</label>
             <input
               type="date"
               {...register('exam_date')}
@@ -227,7 +241,7 @@ export default function ReceptionAddRecord() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Time Slot</label>
+            <label className="block text-sm font-medium text-gray-700">Цагийн интервал</label>
             <input
               {...register('time_slot')}
               className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm text-gray-900 focus:border-indigo-500 sm:text-sm"
@@ -238,12 +252,12 @@ export default function ReceptionAddRecord() {
 
         <div className="flex items-center gap-2">
           <input type="checkbox" {...register('has_contrast')} className="h-4 w-4 text-indigo-600 border-gray-300 rounded" />
-          <label className="text-sm text-gray-700">Contrast Required</label>
+          <label className="text-sm text-gray-700">Тодосгогч шаардлагатай</label>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Price</label>
+            <label className="block text-sm font-medium text-gray-700">Үнэ</label>
             <input
               type="number"
               {...register('price')}
@@ -252,7 +266,7 @@ export default function ReceptionAddRecord() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Discount</label>
+            <label className="block text-sm font-medium text-gray-700">Хөнгөлөлт</label>
             <input
               type="number"
               {...register('discount')}
@@ -264,40 +278,40 @@ export default function ReceptionAddRecord() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Payment Status</label>
+            <label className="block text-sm font-medium text-gray-700">Төлбөрийн төлөв</label>
             <select
               {...register('payment_status')}
               className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm text-gray-900 focus:border-indigo-500 sm:text-sm"
             >
-              <option value="">Select...</option>
+              <option value="">Сонгох...</option>
               {PAYMENT_STATUSES.map((status) => (
-                <option key={status} value={status}>{status}</option>
+                <option key={status.value} value={status.value}>{status.label}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Payment Method</label>
+            <label className="block text-sm font-medium text-gray-700">Төлбөрийн хэлбэр</label>
             <select
               {...register('payment_method')}
               className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm text-gray-900 focus:border-indigo-500 sm:text-sm"
             >
-              <option value="">Select...</option>
+              <option value="">Сонгох...</option>
               {PAYMENT_METHODS.map((method) => (
-                <option key={method} value={method}>{method}</option>
+                <option key={method.value} value={method.value}>{method.label}</option>
               ))}
             </select>
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Info Source</label>
+          <label className="block text-sm font-medium text-gray-700">Эх сурвалж</label>
           <select
             {...register('info_source')}
             className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm text-gray-900 focus:border-indigo-500 sm:text-sm"
           >
-            <option value="">Select...</option>
+            <option value="">Сонгох...</option>
             {INFO_SOURCES.map((source) => (
-              <option key={source} value={source}>{source}</option>
+              <option key={source.value} value={source.value}>{source.label}</option>
             ))}
           </select>
         </div>
@@ -308,7 +322,7 @@ export default function ReceptionAddRecord() {
             disabled={isSubmitting || saving}
             className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
           >
-            {isSubmitting || saving ? 'Saving...' : 'Register Patient'}
+            {isSubmitting || saving ? 'Хадгалж байна...' : 'Өвчтөн бүртгэх'}
           </button>
         </div>
       </form>

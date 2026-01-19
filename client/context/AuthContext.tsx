@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const username = localStorage.getItem('username'); // Optional if you store it
 
     if (token && role) {
-      setUser({ role, username: username || 'User' });
+      setUser({ role, username: username || 'Хэрэглэгч' });
     }
     setIsLoading(false);
   }, []);

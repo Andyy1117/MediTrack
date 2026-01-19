@@ -29,6 +29,18 @@ export default function AdminDashboard() {
   const [revenueSeries, setRevenueSeries] = useState<RevenueSeriesRow[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
+  const dayLabel = (label: string) => {
+    const map: Record<string, string> = {
+      Mon: 'Да',
+      Tue: 'Мя',
+      Wed: 'Лх',
+      Thu: 'Пү',
+      Fri: 'Ба',
+      Sat: 'Бя',
+      Sun: 'Ня'
+    };
+    return map[label] || label;
+  };
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -85,26 +97,26 @@ export default function AdminDashboard() {
 
   return (
     <div className="max-w-6xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6 text-gray-900">Admin Dashboard</h1>
+      <h1 className="text-2xl font-bold mb-6 text-gray-900">Админ самбар</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
         <DashboardCard
-          title="Today's Scheduled Patients"
+          title="Өнөөдрийн товлогдсон өвчтөн"
           value={loading ? '...' : todayCount}
           icon={<CalendarCheck className="h-6 w-6 text-indigo-600" />}
         />
         <DashboardCard
-          title="Pending Reports"
+          title="Хүлээгдэж буй дүгнэлт"
           value={loading ? '...' : pendingExamsCount}
           icon={<ClipboardList className="h-6 w-6 text-amber-600" />}
         />
         <DashboardCard
-          title="Weekly Top Referrers"
+          title="7 хоногийн шилдэг илгээгч"
           value={loading ? '...' : topReferrers.length}
           icon={<TrendingUp className="h-6 w-6 text-emerald-600" />}
         />
         <DashboardCard
-          title="Weekly Revenue (MNT)"
+          title="7 хоногийн орлого (₮)"
           value={loading ? '...' : totalRevenue}
           icon={<Activity className="h-6 w-6 text-purple-600" />}
         />
@@ -112,11 +124,11 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Weekly Revenue (Admin)</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">7 хоногийн орлого (Админ)</h2>
           <div className="space-y-3">
           {revenueSeries.map((row) => (
               <div key={row.label} className="flex items-center gap-4">
-                <span className="w-10 text-sm text-gray-500">{row.label}</span>
+                <span className="w-10 text-sm text-gray-500">{dayLabel(row.label)}</span>
                 <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
                   <div
                     className="h-3 bg-indigo-500 rounded-full"
@@ -128,14 +140,14 @@ export default function AdminDashboard() {
             ))}
           </div>
           {revenueSeries.length === 0 && (
-            <p className="text-xs text-gray-400 mt-3">No revenue data yet.</p>
+            <p className="text-xs text-gray-400 mt-3">Одоогоор орлогын мэдээлэл алга.</p>
           )}
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Top Referring Doctors</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Шилдэг илгээгч эмч нар</h2>
           {topReferrers.length === 0 ? (
-            <p className="text-sm text-gray-500">No referral data yet.</p>
+            <p className="text-sm text-gray-500">Илгээлтийн мэдээлэл алга.</p>
           ) : (
             <ul className="space-y-3">
               {topReferrers.map((doc) => (
@@ -144,7 +156,7 @@ export default function AdminDashboard() {
                     <p className="text-sm font-medium text-gray-900">{doc.doctor_name}</p>
                     <p className="text-xs text-gray-500">{doc.hospital}</p>
                   </div>
-                  <span className="text-sm text-gray-600">{doc.exam_count} exams</span>
+                  <span className="text-sm text-gray-600">{doc.exam_count} шинжилгээ</span>
                 </li>
               ))}
             </ul>

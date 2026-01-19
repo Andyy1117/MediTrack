@@ -22,6 +22,18 @@ export default function FinancialReportsPage() {
   const [revenueRows, setRevenueRows] = useState<RevenueRow[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
+  const dayLabel = (label: string) => {
+    const map: Record<string, string> = {
+      Mon: 'Да',
+      Tue: 'Мя',
+      Wed: 'Лх',
+      Thu: 'Пү',
+      Fri: 'Ба',
+      Sat: 'Бя',
+      Sun: 'Ня'
+    };
+    return map[label] || label;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,12 +75,12 @@ export default function FinancialReportsPage() {
 
   return (
     <div className="max-w-6xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Financial Reports</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Санхүүгийн тайлан</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500">Weekly Completed Exams</p>
+            <p className="text-sm text-gray-500">7 хоногийн дууссан шинжилгээ</p>
             <p className="text-2xl font-semibold text-gray-900 mt-1">{loading ? '...' : totalExams}</p>
           </div>
           <div className="p-3 bg-indigo-50 rounded-full">
@@ -77,7 +89,7 @@ export default function FinancialReportsPage() {
         </div>
         <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500">Total Bonus Payout (MNT)</p>
+            <p className="text-sm text-gray-500">Нийт урамшуулал (₮)</p>
             <p className="text-2xl font-semibold text-gray-900 mt-1">{loading ? '...' : totalBonus}</p>
           </div>
           <div className="p-3 bg-emerald-50 rounded-full">
@@ -86,7 +98,7 @@ export default function FinancialReportsPage() {
         </div>
         <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500">Weekly Revenue (MNT)</p>
+            <p className="text-sm text-gray-500">7 хоногийн орлого (₮)</p>
             <p className="text-2xl font-semibold text-gray-900 mt-1">{loading ? '...' : totalRevenue}</p>
           </div>
           <div className="p-3 bg-purple-50 rounded-full">
@@ -97,14 +109,14 @@ export default function FinancialReportsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Weekly Revenue</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">7 хоногийн орлого</h2>
           {revenueRows.length === 0 ? (
-            <p className="text-sm text-gray-500">No revenue data available.</p>
+            <p className="text-sm text-gray-500">Орлогын мэдээлэл алга.</p>
           ) : (
             <div className="space-y-3">
               {revenueRows.map((row) => (
                 <div key={row.label} className="flex items-center gap-4">
-                  <span className="w-10 text-sm text-gray-500">{row.label}</span>
+                  <span className="w-10 text-sm text-gray-500">{dayLabel(row.label)}</span>
                   <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className="h-3 bg-indigo-500 rounded-full"
@@ -119,11 +131,11 @@ export default function FinancialReportsPage() {
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Top Referrers (Weekly)</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Шилдэг илгээгч (7 хоног)</h2>
           {loading ? (
-            <p className="text-sm text-gray-500">Loading bonus report...</p>
+            <p className="text-sm text-gray-500">Урамшууллын тайлан ачаалж байна...</p>
           ) : bonusRows.length === 0 ? (
-            <p className="text-sm text-gray-500">No bonus data available.</p>
+            <p className="text-sm text-gray-500">Урамшууллын мэдээлэл алга.</p>
           ) : (
             <div className="space-y-4">
               {bonusRows.map((row) => (
@@ -132,7 +144,7 @@ export default function FinancialReportsPage() {
                     <p className="text-sm font-medium text-gray-900">{row.doctor_name}</p>
                     <p className="text-xs text-gray-500">{row.hospital}</p>
                   </div>
-                  <div className="text-sm text-gray-600">{row.exam_count} exams</div>
+                  <div className="text-sm text-gray-600">{row.exam_count} шинжилгээ</div>
                 </div>
               ))}
             </div>

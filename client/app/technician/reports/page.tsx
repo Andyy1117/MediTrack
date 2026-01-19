@@ -20,6 +20,27 @@ export default function ReportManagementPage() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [selected, setSelected] = useState<Exam | null>(null);
   const [saving, setSaving] = useState(false);
+  const examTypeLabel = (type: string) => {
+    const map: Record<string, string> = {
+      "MRI Brain": "MRI Тархи",
+      "MRI Spine": "MRI Нуруу",
+      "MRI Knee": "MRI Өвдөг",
+      "MRI Abdomen": "MRI Хэвлий",
+      "CT Head": "CT Толгой",
+      "CT Chest": "CT Цээж",
+      "CT Abdomen": "CT Хэвлий",
+      "X-Ray": "Рентген",
+      "Ultrasound": "Хэт авиан"
+    };
+    return map[type] || type;
+  };
+  const reportStatusLabel = (status?: string) => {
+    if (!status) return '';
+    const normalized = status.toLowerCase();
+    if (normalized === 'draft') return 'Ноорог';
+    if (normalized === 'final') return 'Эцсийн';
+    return status;
+  };
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -28,7 +49,7 @@ export default function ReportManagementPage() {
         setExams(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error(err);
-        const message = (err as any)?.response?.data?.msg || 'Failed to load report queue';
+        const message = (err as any)?.response?.data?.msg || 'Дүгнэлтийн жагсаалт ачаалж чадсангүй';
         toast.error(message);
         setExams([]);
         setSelected(null);
@@ -54,10 +75,10 @@ export default function ReportManagementPage() {
         radiologist_name: selected.radiologist_name,
         radiologist_license: selected.radiologist_license
       });
-      toast.success('Report updated');
+      toast.success('Дүгнэлт шинэчлэгдлээ');
     } catch (err) {
       console.error(err);
-      toast.error('Failed to update report');
+      toast.error('Дүгнэлт шинэчлэхэд алдаа гарлаа');
     } finally {
       setSaving(false);
     }
@@ -67,17 +88,17 @@ export default function ReportManagementPage() {
     <div className="max-w-5xl mx-auto py-8 px-4">
       <div className="flex items-center gap-2 mb-6">
         <FileText className="h-6 w-6 text-indigo-600" />
-        <h1 className="text-2xl font-bold text-gray-900">Report Management</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Дүгнэлт удирдлага</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white rounded-lg shadow overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium">Completed Exams</h2>
+            <h2 className="text-lg font-medium">Дууссан шинжилгээ</h2>
           </div>
           <div className="divide-y divide-gray-200">
             {exams.length === 0 ? (
-              <div className="p-6 text-sm text-gray-500">No completed exams yet.</div>
+              <div className="p-6 text-sm text-gray-500">Дууссан шинжилгээ алга.</div>
             ) : (
               exams.map((exam) => (
                 <button
@@ -88,8 +109,8 @@ export default function ReportManagementPage() {
                   }`}
                 >
                   <p className="text-sm font-medium text-gray-900">{exam.patient_name}</p>
-                  <p className="text-xs text-gray-500">{exam.exam_type}</p>
-                  <p className="text-xs text-gray-400 mt-1">Status: {exam.report_status || 'Draft'}</p>
+                  <p className="text-xs text-gray-500">{examTypeLabel(exam.exam_type)}</p>
+                  <p className="text-xs text-gray-400 mt-1">Төлөв: {reportStatusLabel(exam.report_status || 'Draft')}</p>
                 </button>
               ))
             )}
@@ -101,43 +122,43 @@ export default function ReportManagementPage() {
             <div className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-gray-900">{selected.patient_name}</p>
-                <p className="text-xs text-gray-500">{selected.exam_type}</p>
+                <p className="text-xs text-gray-500">{examTypeLabel(selected.exam_type)}</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Report Status</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Дүгнэлтийн төлөв</label>
                 <select
                   value={selected.report_status || 'Draft'}
                   onChange={(e) => updateField('report_status', e.target.value)}
                   className="w-full rounded-md border-gray-300 shadow-sm sm:text-sm p-2 border"
                 >
-                  <option value="Draft">Draft</option>
-                  <option value="Final">Final</option>
+                  <option value="Draft">Ноорог</option>
+                  <option value="Final">Эцсийн</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Radiologist Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Дүгнэлт гаргах эмч</label>
                 <input
                   value={selected.radiologist_name || ''}
                   onChange={(e) => updateField('radiologist_name', e.target.value)}
                   className="w-full rounded-md border-gray-300 shadow-sm sm:text-sm p-2 border"
-                  placeholder="Dr. Name"
+                  placeholder="Эмчийн нэр"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Radiologist License</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Эмчийн лиценз</label>
                 <input
                   value={selected.radiologist_license || ''}
                   onChange={(e) => updateField('radiologist_license', e.target.value)}
                   className="w-full rounded-md border-gray-300 shadow-sm sm:text-sm p-2 border"
-                  placeholder="License No"
+                  placeholder="Лицензийн дугаар"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Report File URL</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Дүгнэлтийн файл URL</label>
                 <input
                   value={selected.file_url || ''}
                   onChange={(e) => updateField('file_url', e.target.value)}
@@ -147,12 +168,12 @@ export default function ReportManagementPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Internal Notes</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Дотоод тэмдэглэл</label>
                 <textarea
                   value={selected.internal_notes || ''}
                   onChange={(e) => updateField('internal_notes', e.target.value)}
                   className="w-full rounded-md border-gray-300 shadow-sm sm:text-sm p-2 border min-h-[100px]"
-                  placeholder="Notes"
+                  placeholder="Тэмдэглэл"
                 />
               </div>
 
@@ -162,11 +183,11 @@ export default function ReportManagementPage() {
                 className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
               >
                 <Save className="h-4 w-4" />
-                {saving ? 'Saving...' : 'Save Report'}
+                {saving ? 'Хадгалж байна...' : 'Дүгнэлт хадгалах'}
               </button>
             </div>
           ) : (
-            <p className="text-sm text-gray-500">Select an exam to update its report.</p>
+            <p className="text-sm text-gray-500">Дүгнэлт шинэчлэх шинжилгээг сонгоно уу.</p>
           )}
         </div>
       </div>

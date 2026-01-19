@@ -17,9 +17,9 @@ export default function LoginPage() {
       const response = await api.post('/auth/login', data);
       const { access_token, role } = response.data;
       login(access_token, role, data.username);
-      toast.success("Successfully logged in!");
+      toast.success("Амжилттай нэвтэрлээ!");
     } catch (err: any) {
-      const msg = err.response?.data?.msg || 'Login failed';
+      const msg = err.response?.data?.msg || 'Нэвтрэхэд алдаа гарлаа';
       setError(msg);
       toast.error(msg);
     }
@@ -31,10 +31,10 @@ export default function LoginPage() {
         <div className="rounded-2xl bg-white/90 shadow-xl ring-1 ring-slate-200 px-6 py-8 sm:px-8">
           <div className="flex flex-col items-center text-center">
             <div className="h-16 w-16 rounded-full bg-indigo-50 flex items-center justify-center">
-              <img src="/anke-mri-logo.svg" alt="Anke MRI" className="h-10 w-10" />
+              <img src="/Logo%20anke%20png.png" alt="Anke MRI" className="h-10 w-10 object-contain" />
             </div>
             <h1 className="mt-4 text-2xl font-semibold text-slate-900">Anke MRI</h1>
-            <p className="mt-1 text-sm text-slate-500">Medical Center</p>
+            <p className="mt-1 text-sm text-slate-500">Эмнэлэг</p>
             <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900">
               Нэвтрэх
             </h2>
@@ -83,7 +83,7 @@ export default function LoginPage() {
           </form>
         </div>
         <p className="mt-6 text-center text-xs text-slate-500">
-          Secure access to imaging records
+          Дүрс оношилгооны бүртгэлд аюулгүй хандалт
         </p>
       </div>
     </div>
