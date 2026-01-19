@@ -1,8 +1,8 @@
 [phases.setup]
-nixPkgs = ["python311", "python311Packages.pip"]
+aptPkgs = ["python3", "python3-pip"]
 
 [phases.install]
-cmds = ["python -m pip install -r server/requirements.txt"]
+cmds = ["python3 -m pip install -r server/requirements.txt"]
 
 [start]
 cmd = "cd server && gunicorn app:app"
