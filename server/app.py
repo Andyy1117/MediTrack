@@ -18,7 +18,11 @@ app = Flask(__name__)
 # Security & Config
 app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "super-secret-dev-key")
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=12)
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///scanapp.db")
+database_url = os.environ.get("DATABASE_URL", "sqlite:///scanapp.db")
+# Normalize for SQLAlchemy when Railway provides postgres://
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
