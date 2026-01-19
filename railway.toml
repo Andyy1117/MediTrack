@@ -2,6 +2,6 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "cd server && gunicorn app:app"
+startCommand = "cd server && /app/.venv/bin/gunicorn app:app"
 
 
